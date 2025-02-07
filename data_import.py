@@ -59,7 +59,14 @@ def get_index_levels(df, level):
 
 # %%
 # Summary statistics
-fig, axes = plt.subplots(int(np.ceil(len(samples.columns[2:]) / 3)), 3, figsize=(7, 15))
+fig = plt.figure(constrained_layout=True, figsize=(15, 15))
+gs = fig.add_gridspec(2,2, height_ratios=[1,2])
+
+sfig1 = fig.add_subfigure(gs[:,0])
+sfig2 = fig.add_subfigure(gs[0,1])
+sfig3 = fig.add_subfigure(gs[1,1])
+
+axes = sfig1.subplots(int(np.ceil(len(samples.columns[2:]) / 3)), 3)
 
 for column, ax in zip(samples.columns[2:], axes.flatten()):
     # Get the values dor each column and count the occurrences
@@ -77,8 +84,8 @@ for column, ax in zip(samples.columns[2:], axes.flatten()):
 
 fig.subplots_adjust(wspace=0.3, hspace=0.7)
 
-for column in samples.columns[:2]:
-    fig, ax = plt.subplots()
+for column, sfig in zip(samples.columns[:2], [sfig3, sfig2]):
+    ax = sfig.subplots()
     dat = samples.loc[:, column]
     dat = dat.value_counts()
     dat.plot(kind="bar", ax=ax)
