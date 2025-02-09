@@ -198,23 +198,25 @@ class NormalizedTimeSeriesWithDerivatives(layers.Layer):
         # print(inputs.shape)
 
         # First derivative: Finite difference (forward difference method)
-        first_derivative = inputs[:, 1:] - inputs[:, :-1]
+        first_derivative = inputs[:, 1:, :] - inputs[:, :-1, :]
         first_derivative = tf.pad(
-            first_derivative, [[0, 0], [1, 0]]
+            first_derivative, [[0, 0], [1, 0], [0, 0]]
         )  # Pad to maintain shape
 
         # print(first_derivative.shape)
 
         # Second derivative: Finite difference of first derivative
-        second_derivative = first_derivative[:, 1:] - first_derivative[:, :-1]
+        second_derivative = first_derivative[:, 1:, :] - first_derivative[:, :-1, :]
         second_derivative = tf.pad(
-            second_derivative, [[0, 0], [1, 0]]
+            second_derivative, [[0, 0], [1, 0], [0, 0]]
         )  # Pad to maintain shape
 
         # print(second_derivative.shape)
 
         # Concatenate original signal with derivatives
         combined = tf.concat([inputs, first_derivative, second_derivative], axis=-1)
+
+        # print(combined)
 
         # Normalize each feature independently (along time axis)
         mean = tf.reduce_mean(
@@ -225,5 +227,7 @@ class NormalizedTimeSeriesWithDerivatives(layers.Layer):
         )  # Compute std per sample
 
         normalized_output = (combined - mean) / (std + self.epsilon)  # Normalize
+
+        # print(normalized_output)
 
         return normalized_output
