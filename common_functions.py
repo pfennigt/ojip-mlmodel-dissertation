@@ -99,14 +99,17 @@ def get_model_metrics(Y_test, Y_pred, prediction_threshold):
 def df_to_dataset(dataframe, targets, shuffle=True, batch_size=32):
     df = dataframe.copy()
 
-    targets = df[targets]
+    # Get the data to each first-level column
+    df_sets = df.columns.levels[0]
+    all_dict = {key: df[key].to_numpy() for key in df_sets}
 
-    targets = {key: value.to_numpy()[:,tf.newaxis] for key, value in targets.items()}
-    features = {key: value.to_numpy()[:,tf.newaxis] for key, value in dataframe.items()}
+    # Get the targets
+    targets_dict = {k:all_dict[k] for k in targets}
 
-    ds = tf.data.Dataset.from_tensor_slices((dict(features), dict(targets)))
+    # Make into Dataset
+    ds = tf.data.Dataset.from_tensor_slices((dict(all_dict), dict(targets_dict)))
     if shuffle:
-        ds = ds.shuffle(buffer_size=len(dataframe))
+        ds = ds.shuffle(buffer_size=len(df))
         ds = ds.batch(batch_size)
         ds = ds.prefetch(batch_size)
     return ds
@@ -173,7 +176,7 @@ class TimeSeriesNormalization(layers.Layer):
         return (inputs - mean) / (std + self.epsilon)  # Normalize
 
 
-class NormalizedTimeSeriesWithDerivatives(tf.keras.layers.Layer):
+class NormalizedTimeSeriesWithDerivatives(layers.Layer):
     def __init__(self, epsilon=1e-6, **kwargs):
         super(NormalizedTimeSeriesWithDerivatives, self).__init__(**kwargs)
         self.epsilon = epsilon  # To prevent division by zero
@@ -192,17 +195,23 @@ class NormalizedTimeSeriesWithDerivatives(tf.keras.layers.Layer):
             - Second channel: Normalized first derivative
             - Third channel: Normalized second derivative
         """
+        # print(inputs.shape)
+
         # First derivative: Finite difference (forward difference method)
-        first_derivative = inputs[:, 1:, :] - inputs[:, :-1, :]
+        first_derivative = inputs[:, 1:] - inputs[:, :-1]
         first_derivative = tf.pad(
-            first_derivative, [[0, 0], [1, 0], [0, 0]]
+            first_derivative, [[0, 0], [1, 0]]
         )  # Pad to maintain shape
 
+        # print(first_derivative.shape)
+
         # Second derivative: Finite difference of first derivative
-        second_derivative = first_derivative[:, 1:, :] - first_derivative[:, :-1, :]
+        second_derivative = first_derivative[:, 1:] - first_derivative[:, :-1]
         second_derivative = tf.pad(
-            second_derivative, [[0, 0], [1, 0], [0, 0]]
+            second_derivative, [[0, 0], [1, 0]]
         )  # Pad to maintain shape
+
+        # print(second_derivative.shape)
 
         # Concatenate original signal with derivatives
         combined = tf.concat([inputs, first_derivative, second_derivative], axis=-1)
