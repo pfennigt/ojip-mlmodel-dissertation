@@ -104,7 +104,7 @@ def df_to_dataset(dataframe, targets, shuffle=True, batch_size=32):
     all_dict = {key: df[key].to_numpy() for key in df_sets}
 
     # Get the targets
-    targets_dict = {k:all_dict[k] for k in targets}
+    targets_dict = {k:all_dict.pop(k) for k in targets}
 
     # Make into Dataset
     ds = tf.data.Dataset.from_tensor_slices((dict(all_dict), dict(targets_dict)))
