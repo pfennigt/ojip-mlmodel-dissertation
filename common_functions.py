@@ -110,10 +110,19 @@ def df_to_dataset(dataframe, targets, shuffle=True, batch_size=32):
     ds = tf.data.Dataset.from_tensor_slices((dict(all_dict), dict(targets_dict)))
     if shuffle:
         ds = ds.shuffle(buffer_size=len(df))
-        ds = ds.batch(batch_size)
-        ds = ds.prefetch(batch_size)
+    ds = ds.batch(batch_size)
+    ds = ds.prefetch(batch_size)
     return ds
 
+def get_dataset_from_input_df(dataframe, all_inputs, batch_size=32):
+    df = dataframe.copy()
+
+    # Get the data to each first-level column
+    all_dict = {key: df[key].to_numpy() for key in all_inputs}
+
+    # Make into Dataset
+    ds = tf.data.Dataset.from_tensor_slices(dict(all_dict))
+    return ds.batch(batch_size)
 
 def get_normalization_layer(name, dataset):
     # Create a Normalization layer for the feature.
