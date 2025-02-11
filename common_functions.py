@@ -244,8 +244,9 @@ class NormalizedTimeSeriesWithDerivatives(layers.Layer):
 # Plot the final metrics of a model
 def plot_model_metrics(metrics, dataset):
     # Get the targets from the dataset to count occurrences
-    _targets = list(dataset.map(lambda x,y: y).as_numpy_iterator())[0]
-    _targets = pd.DataFrame({k:v.flatten() for k,v in _targets.items()})
+    _targets_subsets = list(dataset.map(lambda x,y: y).as_numpy_iterator())
+    _targets = [pd.DataFrame({k:v.flatten() for k,v in _targets_subset.items()}) for _targets_subset in _targets_subsets]
+    _targets = pd.concat(_targets, axis=0)
     target_number = _targets.sum().sort_values(ascending=False)
 
     # Get all metrics and assign them to the targets
