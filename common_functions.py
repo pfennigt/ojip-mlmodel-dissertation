@@ -240,3 +240,57 @@ class NormalizedTimeSeriesWithDerivatives(layers.Layer):
         # print(normalized_output)
 
         return normalized_output
+    
+# Plot the final metrics of a model
+def plot_model_metrics(metrics, dataset):
+    # Get the targets from the dataset to count occurrences
+    _targets = list(dataset.map(lambda x,y: y).as_numpy_iterator())[0]
+    _targets = pd.DataFrame({k:v.flatten() for k,v in _targets.items()})
+    target_number = _targets.sum().sort_values(ascending=False)
+
+    # Get all metrics and assign them to the targets
+    plot_metrics = pd.Series(
+        {tuple(k.split("_..")): v for k,v in metrics.items() if not k.endswith("loss")}
+    )
+    metrics_names = plot_metrics.index.levels[1]
+
+
+    # Create the figure
+    fig, axes = plt.subplots(
+        len(metrics_names) + 1, 
+        1,
+        figsize=(7,7),
+        sharex=True
+    )
+
+    # Plot the number of occurrences
+    axes[0].bar(
+        range(len(target_number)),
+        target_number
+    )
+    axes[0].set_title("Number of samples")
+    axes[0].set_ylabel("Number of samples")
+
+    for i, metric in enumerate(metrics_names):
+        axes[i+1].bar(
+            range(len(target_number)),
+            plot_metrics.loc[idx[target_number.index, metric]]
+        )
+        axes[i+1].set_title(metric)
+        axes[i+1].set_ylabel(metric)
+
+
+    axes[-1].set_xticks(list(range(len(target_number))), target_number.index.to_numpy())
+    fig.tight_layout()
+
+    return fig, ax
+
+# Predict a model output for an input dataframe and return a dataframe
+def predict_model_from_df(model, df):
+    pred = model.predict(
+        fnc.get_dataset_from_input_df(df, model.input)
+    ) # For a Dataframe
+    # test = model.predict(test_ds.map(lambda x,y : x)) # For a DataSet
+    res = pd.DataFrame({k:v.flatten() for k,v in pred.items()})
+    res.index = df.index
+    return res
