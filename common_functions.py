@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import layers
+idx = pd.IndexSlice
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
@@ -158,6 +159,16 @@ def get_category_encoding_layer(name, dataset, dtype, max_tokens=None):
     # layer, so you can use them, or include them in the Keras Functional model later.
     return lambda feature: encoder(index(feature))
 
+def get_bucket_encoding_layer(name, bin_boundaries):
+    
+    discretization_layer = layers.Discretization(bin_boundaries=bin_boundaries)
+
+    # Encode the integer indices.
+    encoder = layers.CategoryEncoding(num_tokens=len(bin_boundaries))
+
+    # Apply multi-hot encoding to the indices. The lambda function captures the
+    # layer, so you can use them, or include them in the Keras Functional model later.
+    return lambda feature: encoder(discretization_layer(feature))
 
 # Time Series normalisation Layer
 class TimeSeriesNormalization(layers.Layer):
@@ -242,7 +253,7 @@ class NormalizedTimeSeriesWithDerivatives(layers.Layer):
         return normalized_output
     
 # Plot the final metrics of a model
-def plot_model_metrics(metrics, dataset):
+def plot_model_metrics(metrics, dataset, ylim=(0,1)):
     # Get the targets from the dataset to count occurrences
     _targets_subsets = list(dataset.map(lambda x,y: y).as_numpy_iterator())
     _targets = [pd.DataFrame({k:v.flatten() for k,v in _targets_subset.items()}) for _targets_subset in _targets_subsets]
@@ -279,17 +290,18 @@ def plot_model_metrics(metrics, dataset):
         )
         axes[i+1].set_title(metric)
         axes[i+1].set_ylabel(metric)
+        axes[i+1].set_ylim(ylim)
 
 
     axes[-1].set_xticks(list(range(len(target_number))), target_number.index.to_numpy())
     fig.tight_layout()
 
-    return fig, ax
+    return fig, axes
 
 # Predict a model output for an input dataframe and return a dataframe
 def predict_model_from_df(model, df):
     pred = model.predict(
-        fnc.get_dataset_from_input_df(df, model.input)
+        get_dataset_from_input_df(df, model.input)
     ) # For a Dataframe
     # test = model.predict(test_ds.map(lambda x,y : x)) # For a DataSet
     res = pd.DataFrame({k:v.flatten() for k,v in pred.items()})
