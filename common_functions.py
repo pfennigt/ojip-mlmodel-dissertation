@@ -15,16 +15,16 @@ def plot_loss_development(history):
     val_loss = history.history["val_loss"]
 
     # Plot the loss curves
-    plt.figure(figsize=(8, 6))
-    plt.plot(train_loss, label="Training Loss", color="blue")
-    plt.plot(val_loss, label="Validation Loss", color="orange")
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.title("Loss Function Development Over Epochs")
-    plt.ylim(0)
-    plt.legend()
-    plt.grid()
-    plt.show()
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(train_loss, label="Training Loss", color="blue")
+    ax.plot(val_loss, label="Validation Loss", color="orange")
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("Loss")
+    ax.set_title("Loss Function Development Over Epochs")
+    ax.set_ylim(0)
+    ax.legend()
+    ax.grid()
+    return fig, ax
 
 
 # Get the true/false positives/negatives if the data is one-hot encoded
