@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 # Plot the loss development over epochs
-def plot_loss_development(history):
+def plot_loss_development(history, info:str|None=None):
     train_loss = history.history["loss"]
     val_loss = history.history["val_loss"]
 
@@ -20,7 +20,7 @@ def plot_loss_development(history):
     ax.plot(val_loss, label="Validation Loss", color="orange")
     ax.set_xlabel("Epochs")
     ax.set_ylabel("Loss")
-    ax.set_title("Loss Function Development Over Epochs")
+    ax.set_title(f"Loss Function Development Over Epochs{'' if info is None else info}")
     ax.set_ylim(0)
     ax.legend()
     ax.grid()
@@ -125,9 +125,9 @@ def get_dataset_from_input_df(dataframe, all_inputs, batch_size=32):
     ds = tf.data.Dataset.from_tensor_slices(dict(all_dict))
     return ds.batch(batch_size)
 
-def get_normalization_layer(name, dataset):
+def get_normalization_layer(name, dataset, normLayer_name=None):
     # Create a Normalization layer for the feature.
-    normalizer = layers.Normalization(axis=None)
+    normalizer = layers.Normalization(axis=None, name=normLayer_name)
 
     # Prepare a Dataset that only yields the feature.
     feature_ds = dataset.map(lambda x, y: x[name])
@@ -138,13 +138,13 @@ def get_normalization_layer(name, dataset):
     return normalizer
 
 
-def get_category_encoding_layer(name, dataset, dtype, max_tokens=None):
+def get_category_encoding_layer(name, dataset, dtype, max_tokens=None, lookupLayer_name=None, encodingLayer_name=None):
     # Create a layer that turns strings into integer indices.
     if dtype == "string":
-        index = layers.StringLookup(max_tokens=max_tokens)
+        index = layers.StringLookup(max_tokens=max_tokens, name=lookupLayer_name)
     # Otherwise, create a layer that turns integer values into integer indices.
     else:
-        index = layers.IntegerLookup(max_tokens=max_tokens)
+        index = layers.IntegerLookup(max_tokens=max_tokens, name=lookupLayer_name)
 
     # Prepare a `tf.data.Dataset` that only yields the feature.
     feature_ds = dataset.map(lambda x, y: x[name])
@@ -153,18 +153,18 @@ def get_category_encoding_layer(name, dataset, dtype, max_tokens=None):
     index.adapt(feature_ds)
 
     # Encode the integer indices.
-    encoder = layers.CategoryEncoding(num_tokens=index.vocabulary_size())
+    encoder = layers.CategoryEncoding(num_tokens=index.vocabulary_size(), name=encodingLayer_name)
 
     # Apply multi-hot encoding to the indices. The lambda function captures the
     # layer, so you can use them, or include them in the Keras Functional model later.
     return lambda feature: encoder(index(feature))
 
-def get_bucket_encoding_layer(name, bin_boundaries):
+def get_bucket_encoding_layer(name, bin_boundaries, dicretizationLayer_name=None, encodingLayer_name=None):
     
-    discretization_layer = layers.Discretization(bin_boundaries=bin_boundaries)
+    discretization_layer = layers.Discretization(bin_boundaries=bin_boundaries, name=dicretizationLayer_name)
 
     # Encode the integer indices.
-    encoder = layers.CategoryEncoding(num_tokens=len(bin_boundaries))
+    encoder = layers.CategoryEncoding(num_tokens=len(bin_boundaries), name=encodingLayer_name)
 
     # Apply multi-hot encoding to the indices. The lambda function captures the
     # layer, so you can use them, or include them in the Keras Functional model later.
@@ -172,9 +172,12 @@ def get_bucket_encoding_layer(name, bin_boundaries):
 
 # Time Series normalisation Layer
 class TimeSeriesNormalization(layers.Layer):
-    def __init__(self, epsilon=1e-6):
+    def __init__(self, epsilon=1e-6, name=None):
         super(TimeSeriesNormalization, self).__init__()
         self.epsilon = epsilon  # To prevent division by zero
+
+        if name is not None:
+            self.name=name
 
     def call(self, inputs):
         """
@@ -197,9 +200,12 @@ class TimeSeriesNormalization(layers.Layer):
 
 
 class NormalizedTimeSeriesWithDerivatives(layers.Layer):
-    def __init__(self, epsilon=1e-6, **kwargs):
+    def __init__(self, epsilon=1e-6, name=None, **kwargs):
         super(NormalizedTimeSeriesWithDerivatives, self).__init__(**kwargs)
         self.epsilon = epsilon  # To prevent division by zero
+        
+        if name is not None:
+            self.name=name
 
     def call(self, inputs):
         """
@@ -251,6 +257,51 @@ class NormalizedTimeSeriesWithDerivatives(layers.Layer):
         # print(normalized_output)
 
         return normalized_output
+    
+class TimeSeriesDerivatives(layers.Layer):
+    def __init__(self, epsilon=1e-6, name=None, **kwargs):
+        super(TimeSeriesDerivatives, self).__init__(**kwargs)
+        self.name=name
+        
+        if name is not None:
+            self.name=name
+
+    def call(self, inputs):
+        """
+        Compute first and second numerical derivatives using TensorFlow operations, normalize each component,
+        and concatenate all features.
+
+        Args:
+            inputs: Tensor of shape (batch_size, time_steps, 1) representing the time series.
+
+        Returns:
+            Normalized tensor of shape (batch_size, time_steps, 3), where:
+            - First channel: Normalized original time series
+            - Second channel: Normalized first derivative
+            - Third channel: Normalized second derivative
+        """
+        # print(inputs.shape)
+
+        # First derivative: Finite difference (forward difference method)
+        first_derivative = inputs[:, 1:, :] - inputs[:, :-1, :]
+        first_derivative = tf.pad(
+            first_derivative, [[0, 0], [1, 0], [0, 0]]
+        )  # Pad to maintain shape
+
+        # print(first_derivative.shape)
+
+        # Second derivative: Finite difference of first derivative
+        second_derivative = first_derivative[:, 1:, :] - first_derivative[:, :-1, :]
+        second_derivative = tf.pad(
+            second_derivative, [[0, 0], [1, 0], [0, 0]]
+        )  # Pad to maintain shape
+
+        # print(second_derivative.shape)
+
+        # Concatenate original signal with derivatives
+        combined = tf.concat([inputs, first_derivative, second_derivative], axis=-1)
+
+        return combined
     
 # Plot the final metrics of a model
 def plot_model_metrics(metrics, dataset, ylim=(0,1)):
