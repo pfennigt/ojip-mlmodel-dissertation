@@ -88,4 +88,22 @@ thesis_figures["umap_targets_ojip"] = {"main": plt.figure(figsize=figsize(0.8, 1
 thesis_figures["ojip_doublenorm"] = {"main": plt.figure(figsize=figsize(1, 1))}
 
 # Create figure 4
+thesis_figures["dense_loss"] = {"main": plt.figure(figsize=figsize(1, 0.8))}
+
+# Create figure 4
+thesis_figures["dense_loss_supp"] = {"main": plt.figure(figsize=figsize(1, 0.8))}
+
+# Create figure 5
 thesis_figures["dense_metrics"] = {"main": plt.figure(figsize=figsize(1, 1.2))}
+
+# Create figure 4
+thesis_figures["lstm_loss"] = {"main": plt.figure(figsize=figsize(1, 0.8))}
+
+# Create figure 4
+thesis_figures["lstm_loss_supp"] = {"main": plt.figure(figsize=figsize(1, 0.8))}
+
+# Create figure 5
+thesis_figures["lstm_metrics"] = {"main": plt.figure(figsize=figsize(1, 1.2))}
+
+# Create figure 5
+thesis_figures["lstm_metrics_over_time"] = {"main": plt.figure(figsize=figsize(1, 1.2))}
