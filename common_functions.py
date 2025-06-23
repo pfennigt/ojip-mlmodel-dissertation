@@ -172,9 +172,10 @@ def get_bucket_encoding_layer(name, bin_boundaries, dicretizationLayer_name=None
 
 # Time Series normalisation Layer
 class TimeSeriesNormalization(layers.Layer):
-    def __init__(self, epsilon=1e-6, name=None):
+    def __init__(self, epsilon=1e-6, trainable=False, dtype=None, name=None):
         super(TimeSeriesNormalization, self).__init__()
         self.epsilon = epsilon  # To prevent division by zero
+        self.trainable = False
 
         if name is not None:
             self.name=name
@@ -200,9 +201,10 @@ class TimeSeriesNormalization(layers.Layer):
 
 
 class NormalizedTimeSeriesWithDerivatives(layers.Layer):
-    def __init__(self, epsilon=1e-6, name=None, **kwargs):
+    def __init__(self, epsilon=1e-6, name=None, trainable=False, dtype=None, **kwargs):
         super(NormalizedTimeSeriesWithDerivatives, self).__init__(**kwargs)
         self.epsilon = epsilon  # To prevent division by zero
+        self.trainable = False
         
         if name is not None:
             self.name=name
@@ -259,9 +261,10 @@ class NormalizedTimeSeriesWithDerivatives(layers.Layer):
         return normalized_output
     
 class TimeSeriesDerivatives(layers.Layer):
-    def __init__(self, epsilon=1e-6, name=None, **kwargs):
+    def __init__(self, epsilon=1e-6, name=None, trainable=False, dtype=None, **kwargs):
         super(TimeSeriesDerivatives, self).__init__(**kwargs)
         self.name=name
+        self.trainable = False
         
         if name is not None:
             self.name=name
